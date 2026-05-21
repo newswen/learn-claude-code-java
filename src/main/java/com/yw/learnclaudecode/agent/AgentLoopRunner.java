@@ -77,6 +77,7 @@ public class AgentLoopRunner {
 
     private Object executeToolFunction(ChatCompletionMessageFunctionToolCall.Function function,
                                        StageConfig stageConfig) {
+        // 根据工具名从外部配置中获取工具执行入口
         ToolHandler handler = stageConfig.getToolHandlers().get(function.name());
         if (handler == null) {
             throw new IllegalArgumentException("未注册的工具：" + function.name());
