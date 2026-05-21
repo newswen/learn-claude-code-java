@@ -115,49 +115,44 @@ user message
 
 ## 对应到当前项目代码
 
-当前实现文件：`src/main/java/com/yw/learnclaudecode/service/S01AgentLoopService.java`
+s01 拆成两层阅读：
 
-### 1. 准备初始请求
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/java/com/yw/learnclaudecode/agent/AgentLoopRunner.java` | 稳定的主循环（各章共用） |
+| `src/main/java/com/yw/learnclaudecode/service/S01AgentLoopService.java` | 本章配置：模型 + 单工具 |
 
-`createInitialRequestBuilder` 负责初始化模型、工具和用户问题。
+### 1. 章节只组装配置
 
-### 2. 发起模型请求
+`S01AgentLoopService.runChapter` 用 `StageConfig.builder()` 注册 **1 个**工具（`WeatherTool`），再调用 `agentLoopRunner.run(question, config)`。
 
-`requestChatCompletion` 负责把当前上下文发给模型。
+### 2. 主循环在 AgentLoopRunner
 
-### 3. 进入最小循环
+`AgentLoopRunner.run` 里固定做 4 件事：
 
-`runChapter` 里的 `while (continueConversation)` 就是 s01 的主循环。
+1. 根据 `StageConfig` 创建初始请求（模型、工具 schema、用户问题）
+2. 调模型
+3. 把 assistant message 回填进上下文
+4. 按工具名从 `toolHandlers` 分发执行，并把 `tool_result` 回填
 
-### 4. 先把 assistant 响应写回上下文
+### 3. 先把 assistant 响应写回上下文
 
-`appendAssistantMessagesAndToolResults` 里先执行：
-
-- `requestBuilder.addMessage(...)`
-
-这一步很重要。  
+`appendAssistantMessagesAndToolResults` 里先执行 `requestBuilder.addMessage(...)`。  
 如果只关心最终答案、不保存 assistant 消息，下一轮上下文就会断掉。
 
-### 5. 执行工具并回填结果
+### 4. 执行工具并回填结果
 
-当模型返回工具调用后：
-
-1. `executeToolFunction` 根据工具名执行本地工具
-2. `appendToolResult` 用 `toolCallId` 把结果追加回上下文
+当模型返回工具调用后，runner 根据 `function.name()` 查找 handler，执行后用 `toolCallId` 把结果追加回上下文。
 
 这就是“真实世界结果回流模型”的关键一步。
 
-## 为什么文案里说“1 个工具”，代码里却有 2 个
+### 5. 本章工具列表
 
-教学上说“1 个工具”，强调的是先理解最小闭环，不要一开始把复杂度堆太满。
-
-而当前项目代码为了演示“同一个 loop 可以承接多个工具调用”，实际挂了：
+s01 只挂：
 
 - `WeatherTool`
-- `AirQualityTool`
 
-这不改变 s01 的本质：  
-核心仍然是“模型发起调用 -> 本地执行 -> 结果回填 -> 下一轮继续”。
+多工具注入与 dispatch 见 [s02-tool-use.md](s02-tool-use.md)。
 
 ## 初学者最容易犯的错
 
