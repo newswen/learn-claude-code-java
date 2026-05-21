@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: learn-claude-code
+
+ai:
+  openai:
+    api-key: ${AI_OPENAI_API_KEY}
+    base-url: ${AI_OPENAI_BASE_URL}
